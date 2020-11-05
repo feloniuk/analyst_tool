@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form action="/analyse/start" method="post" enctype="multipart/form-data">
+  <label for="fname">Please select your file:</label><br>
+  <input type="file" id="fname" name="fname"><br>
+  <input type="submit"><br>
+</form>
+{% endblock %}

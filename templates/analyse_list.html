@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+
+{% block content %}
+<br><button onclick="window.location.href='/analyse/start'">Create new task</button>
+{% for analysed_file in analysed_list %}
+<br><a href="/analyse/result/{{analysed_file.task_id}}">{{analysed_file.file_name}}</a>
+{% endfor %}
+{% endblock %}

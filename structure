@@ -1,0 +1,4 @@
+/analyse/start [GET, POST] - upload to media(POST create task for Celery and load file to disk)
+/analyse/list [GET] - list of current worked files
+/analyse/status/<task_id> - get status of current task
+/analyse/result/<task_id> [GET] - get result for some task (if pending alert(under working)
