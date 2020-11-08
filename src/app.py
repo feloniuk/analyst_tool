@@ -1,21 +1,20 @@
 import os
 from pathlib import Path
-import uuid
-import io
-
+from urllib.parse import urlparse
 
 import aiofiles
-from celery.result import AsyncResult
 import aiohttp_jinja2
 import aioredis
 import jinja2
+import pandas as pd
 from aiohttp import web
 from aiohttp_session import get_session
-from worker import analyse_data_set, client
 from aiohttp_session import session_middleware
 from aiohttp_session.redis_storage import RedisStorage
+from celery.result import AsyncResult
 
-import settings
+from src import settings
+from src.worker import analyse_data_set, client
 
 routes = web.RouteTableDef()
 
@@ -40,7 +39,7 @@ async def upload_process(request):
     async for obj in (await request.multipart()):
         if obj.filename is not None:
             file_path = os.path.join(settings.MEDIA_ROOT, obj.filename)
-            f = await aiofiles.open(file_path,  'wb')
+            f = await aiofiles.open(file_path, 'wb')
             await f.write(await obj.read())
             await f.close()
             task_id = analyse_data_set.delay(file_path).id
@@ -64,17 +63,26 @@ async def get_analyse_list(request):
 async def get_result_view(request):
     result = AsyncResult(request.match_info['task_id'], app=client).get()
     return {
-        # 'describe': df['describe'].to_html(),
+        'describe': pd.DataFrame.from_dict(result['describe']).to_html(),
         'info': result['info'],
     }
 
 
 async def init():
-    redis = await aioredis.create_pool(('localhost', 6379))
+    redis_connection_info = urlparse(settings.REDIS_URL)
+    redis = await aioredis.create_pool((
+        redis_connection_info.hostname,
+        redis_connection_info.port
+    ))
     app = web.Application(middlewares=[session_middleware(RedisStorage(redis))])
     app.add_routes(routes)
     aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(settings.TEMPLATE_ROOT))
     Path(settings.MEDIA_ROOT).mkdir(parents=True, exist_ok=True)
     return app
 
-web.run_app(init(), port=8080)
+
+web.run_app(
+    init(),
+    port=settings.WEB_PORT,
+    host=settings.WEB_HOST
+)

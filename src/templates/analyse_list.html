@@ -2,7 +2,11 @@
 
 {% block content %}
 <br><button onclick="window.location.href='/analyse/start'">Create new task</button>
+{% if analysed_list %}
 {% for analysed_file in analysed_list %}
 <br><a href="/analyse/result/{{analysed_file.task_id}}">{{analysed_file.file_name}}</a>
 {% endfor %}
+{% else %}
+<p>You have no analyses yet</p>
+{% endif %}
 {% endblock %}

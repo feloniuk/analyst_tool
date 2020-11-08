@@ -1,10 +1,14 @@
 import io
+
 import pandas as pd
+import pyarrow as pa
 from celery import Celery
-import settings
+
+from src import settings
 
 client = Celery('app', broker=settings.REDIS_URL)
 client.conf.result_backend = settings.REDIS_URL
+context = pa.default_serialization_context()
 
 
 @client.task
@@ -13,9 +17,7 @@ def analyse_data_set(file_path):
     buffer = io.StringIO()
     df.info(buf=buffer)
     data_frame_info = buffer.getvalue()
-
     return {
-        # 'describe': df.describe(),
+        'describe': df.describe().to_dict(),
         'info': data_frame_info,
-        # 'hist': 'random/path/to/image'
     }
