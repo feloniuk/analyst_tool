@@ -1,8 +1,11 @@
 import os
 from pathlib import Path
 from urllib.parse import urlparse
+import aiohttp_cors
+from celery.states import SUCCESS, PENDING
 
 import aiofiles
+import aiohttp
 import aiohttp_jinja2
 import aioredis
 import jinja2
@@ -58,6 +61,18 @@ async def get_analyse_list(request):
     return {'analysed_list': session.get('files')}
 
 
+@routes.get(r'/analyse/status/{task_id}')
+async def get_task_status(request):
+    task_id = request.match_info['task_id']
+    status = AsyncResult(task_id, app=client).status
+    return web.json_response(
+        {
+            'status': status,
+            'task_id': task_id
+        }
+    )
+
+
 @routes.get(r'/analyse/result/{task_id}')
 @aiohttp_jinja2.template('analyse_result.html')
 async def get_result_view(request):
@@ -76,6 +91,15 @@ async def init():
     ))
     app = web.Application(middlewares=[session_middleware(RedisStorage(redis))])
     app.add_routes(routes)
+    cors = aiohttp_cors.setup(app, defaults={
+        "*": aiohttp_cors.ResourceOptions(
+            allow_credentials=True,
+            expose_headers="*",
+            allow_headers="*",
+        )
+    })
+    for route in list(app.router.routes()):
+        cors.add(route)
     aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(settings.TEMPLATE_ROOT))
     Path(settings.MEDIA_ROOT).mkdir(parents=True, exist_ok=True)
     return app

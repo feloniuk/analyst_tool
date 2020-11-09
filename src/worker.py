@@ -1,4 +1,5 @@
 import io
+import time
 
 import pandas as pd
 import pyarrow as pa
@@ -13,6 +14,7 @@ context = pa.default_serialization_context()
 
 @client.task
 def analyse_data_set(file_path):
+    time.sleep(10)
     df = pd.read_csv(file_path)
     buffer = io.StringIO()
     df.info(buf=buffer)

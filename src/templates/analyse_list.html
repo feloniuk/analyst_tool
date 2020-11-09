@@ -1,11 +1,59 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+</style>
 <br><button onclick="window.location.href='/analyse/start'">Create new task</button>
 {% if analysed_list %}
+<table style="width:100%">
+    <tr>
+        <th>FileName</th>
+        <th>Status</th>
+    </tr>
 {% for analysed_file in analysed_list %}
-<br><a href="/analyse/result/{{analysed_file.task_id}}">{{analysed_file.file_name}}</a>
+
+    <tr>
+        <td><a href="/analyse/result/{{analysed_file.task_id}}">{{analysed_file.file_name}}</a></td>
+        <td  class="task" id="{{analysed_file.task_id}}"></td>
+    </tr>
 {% endfor %}
+      </table>
+
+<script>
+
+    var list = document.querySelectorAll(".task");
+
+    async function set_status(element) {
+        var json_http = new XMLHttpRequest();
+        json_http.overrideMimeType("application/json");
+        json_http.open("GET", "/analyse/status/" + element.id, true);
+        json_http.onload  = function() {
+        if (json_http.readyState === 4) {
+            var jsonResponse = JSON.parse(json_http.responseText);
+            var element = document.getElementById(jsonResponse.task_id)
+            element.innerHTML = jsonResponse.status;
+            }
+         }
+
+        json_http.send()
+    }
+
+    async function process_statuses(elements_array) {
+        const promises = Array.from(elements_array).map(element => set_status(element));
+        await Promise.all(promises);
+    }
+
+
+    setInterval(async () => {
+        process_statuses(list);
+    }, 1000);
+
+</script>
+
 {% else %}
 <p>You have no analyses yet</p>
 {% endif %}
